@@ -172,7 +172,7 @@ app.post('/rentals', async (req, res) => {
         }
         await db.query(`INSERT INTO rentals 
         ("customerId","gameId","rentDate","daysRented","returnDate","originalPrice","delayFee") 
-        VALUES ($1,$2,$4,$3,null,${daysRented * (game.rows[0].pricePerDay)},null)`,[customerId, gameId, daysRented,date])
+        VALUES ($1,$2,$4,$3,null,${daysRented * (game.rows[0].pricePerDay)},null)`, [customerId, gameId, daysRented, date])
 
         res.sendStatus(201)
     } catch (err) {
@@ -180,27 +180,47 @@ app.post('/rentals', async (req, res) => {
     }
 })
 
-app.post('/rentals/:id/return', async (req,res)=>{
-    const {id} = req.params
+app.post('/rentals/:id/return', async (req, res) => {
+    const { id } = req.params
     const date = dayjs(Date.now()).format('YYYY-MM-DD')
     try {
-        const rent = await db.query(`SELECT * FROM rentals WHERE id=$1`,[id])
-        if(!rent.rows[0]){
+        const rent = await db.query(`SELECT * FROM rentals WHERE id=$1`, [id])
+        if (!rent.rows[0]) {
             return res.sendStatus(404)
         }
-        if(rent.rows[0].returnDate){
+        if (rent.rows[0].returnDate) {
             return res.sendStatus(400)
         }
-        const game = await db.query(`SELECT * FROM games WHERE id=$1`,[rent.rows[0].gameId])
+        const game = await db.query(`SELECT * FROM games WHERE id=$1`, [rent.rows[0].gameId])
 
-        if(dayjs(date).diff(rent.rows[0].rentDate, 'day') >= rent.rows[0].daysRented){
+        if (dayjs(date).diff(rent.rows[0].rentDate, 'day') >= rent.rows[0].daysRented) {
             const delay = (dayjs(date).diff(rent.rows[0].rentDate, 'day') - rent.rows[0].daysRented)
-            const value = delay*game.rows[0].pricePerDay
-            await db.query(`UPDATE rentals SET "returnDate"=$1, "delayFee"=$2 WHERE id=$3`,[date,value,id])
+            const value = delay * game.rows[0].pricePerDay
+            await db.query(`UPDATE rentals SET "returnDate"=$1, "delayFee"=$2 WHERE id=$3`, [date, value, id])
             return res.sendStatus(200)
         }
 
-        await db.query(`UPDATE rentals SET "returnDate"=$1, "delayFee"=0 WHERE id=$2`,[date,id])
+        await db.query(`UPDATE rentals SET "returnDate"=$1, "delayFee"=0 WHERE id=$2`, [date, id])
+
+        res.sendStatus(200)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+})
+
+app.delete('/rentals/:id', async (req, res) => {
+    const { id } = req.params
+
+    try {
+        const rent = await db.query(`SELECT * FROM rentals WHERE id=$1`, [id])
+        if (!rent.rows[0]) {
+            return res.sendStatus(404)
+        }
+        if (!rent.rows[0].returnDate) {
+            return res.sendStatus(400)
+        }
+
+        await db.query(`DELETE FROM rentals WHERE id=$1`, [id])
 
         res.sendStatus(200)
     } catch (err) {
