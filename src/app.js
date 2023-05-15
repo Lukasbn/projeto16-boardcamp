@@ -240,7 +240,7 @@ app.get('/rentals', async (req,res)=>{
                 id: data.id,
                 customerId: data.customerId,
                 gameId: data.gameId,
-                rentals: data.rentDate,
+                rentDate: dayjs(data.rentDate).format('YYYY-MM-DD'),
                 daysRented: data.daysRented,
                 returnDate: data.returnDate,
                 originalPrice: data.originalPrice,
