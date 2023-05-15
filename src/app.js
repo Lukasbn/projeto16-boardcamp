@@ -15,10 +15,6 @@ app.use(cors())
 app.post('/games', async (req, res) => {
     const { name, image, stockTotal, pricePerDay } = req.body
 
-    if (stockTotal <= 0 || pricePerDay <= 0) {
-        return res.sendStatus(400)
-    }
-
     const gameSchema = joi.object({
         name: joi.string().required(),
         image: joi.string().required(),
@@ -30,7 +26,7 @@ app.post('/games', async (req, res) => {
 
     if (validation.error) {
         const errors = validation.error.details.map((detail) => detail.message);
-        return res.status(422).send(errors);
+        return res.status(400).send(errors);
     }
 
     try {
@@ -45,6 +41,34 @@ app.post('/games', async (req, res) => {
         res.sendStatus(201)
     } catch (err) {
         res.status(500).send(err.message)
+    }
+})
+
+app.get('/games', async (req,res)=>{
+    try {
+        const games = await db.query(`SELECT * FROM games;`)
+        
+        res.send(games.rows)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+})
+
+app.post('/customers', async (req,res)=>{
+    const { name, phone, cpf, birthday} = req.body
+    
+    const customerSchema = joi.object({
+        name: joi.string().required(),
+        phone: joi.string().required(),
+        cpf: joi.string().required(),
+        birthday: joi.number().integer().greater(0).required()
+    })
+
+    const validation = customerSchema.validate(req.body, { abortEarly: false });
+
+    if (validation.error) {
+        const errors = validation.error.details.map((detail) => detail.message);
+        return res.status(400).send(errors);
     }
 })
 
