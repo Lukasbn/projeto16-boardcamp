@@ -3,6 +3,7 @@ import cors from "cors"
 import dotenv from "dotenv"
 import { db } from "./database/database.connection.js"
 import joi from "joi"
+import dayjs from "dayjs"
 
 dotenv.config()
 
@@ -60,7 +61,7 @@ app.post('/customers', async (req,res)=>{
     const customerSchema = joi.object({
         name: joi.string().required(),
         phone: joi.string().min(10).max(11).required(),
-        cpf: joi.string().length(11).required(),
+        cpf: joi.string().length(11).regex(/^\d+$/).required(),
         birthday: joi.date().required()
     })
 
@@ -93,7 +94,7 @@ app.put('/customers/:id', async (req,res)=>{
     const customerSchema = joi.object({
         name: joi.string().required(),
         phone: joi.string().min(10).max(11).required(),
-        cpf: joi.string().length(11).required(),
+        cpf: joi.string().length(11).regex(/^\d+$/).required(),
         birthday: joi.date().required()
     })
 
@@ -124,13 +125,14 @@ app.get('/customers/:id', async (req,res)=>{
     const { id } = req.params
 
     try {  
-        const user = await db.query(`SELECT * FROM customers WHERE id=$1;`,[id])
+        const users = await db.query(`SELECT * FROM customers WHERE id=$1;`,[id])
 
-        if(!user.rows[0]){
+        if(!users.rows[0]){
             return res.sendStatus(404)
         }
 
-        res.send(user.rows[0])
+        const user = users.rows[0]
+        res.send({...user, birthday: dayjs(user.birthday).format('YYYY-MM-DD') })
     } catch (err) {
         res.status(500).send(err.message)
     }
@@ -139,7 +141,7 @@ app.get('/customers/:id', async (req,res)=>{
 app.get('/customers', async (req,res)=>{
     const user = await db.query(`SELECT * FROM customers;`)
 
-    res.send(user.rows)
+    res.send(user.rows.map(user =>({...user, birthday: dayjs(user.birthday).format('YYYY-MM-DD')})))
 })
 const port = process.env.PORT || 5000
 app.listen(port, () => console.log(`app running on port ${port}`))
