@@ -1,23 +1,8 @@
-import joi from "joi";
 import { db } from "../database/database.connection.js";
 import dayjs from "dayjs";
 
 export async function customersPost(req, res){
     const { name, phone, cpf, birthday } = req.body
-
-    const customerSchema = joi.object({
-        name: joi.string().required(),
-        phone: joi.string().min(10).max(11).required(),
-        cpf: joi.string().length(11).regex(/^\d+$/).required(),
-        birthday: joi.date().required()
-    })
-
-    const validation = customerSchema.validate(req.body, { abortEarly: false });
-
-    if (validation.error) {
-        const errors = validation.error.details.map((detail) => detail.message);
-        return res.status(400).send(errors);
-    }
 
     try {
         const verification = await db.query(`SELECT * FROM customers WHERE cpf = $1;`, [cpf])
@@ -26,7 +11,7 @@ export async function customersPost(req, res){
             return res.sendStatus(409)
         }
 
-        const posting = db.query(`INSERT INTO customers (name,phone,cpf,birthday) VALUES ($1,$2,$3,$4);`, [name, phone, cpf, birthday])
+        await db.query(`INSERT INTO customers (name,phone,cpf,birthday) VALUES ($1,$2,$3,$4);`, [name, phone, cpf, birthday])
 
         res.sendStatus(201)
     } catch (err) {
@@ -38,20 +23,6 @@ export async function customersPut(req, res){
     const { name, phone, cpf, birthday } = req.body
     const { id } = req.params
 
-    const customerSchema = joi.object({
-        name: joi.string().required(),
-        phone: joi.string().min(10).max(11).required(),
-        cpf: joi.string().length(11).regex(/^\d+$/).required(),
-        birthday: joi.date().required()
-    })
-
-    const validation = customerSchema.validate(req.body, { abortEarly: false });
-
-    if (validation.error) {
-        const errors = validation.error.details.map((detail) => detail.message);
-        return res.status(400).send(errors);
-    }
-
     try {
         const verification = await db.query(`SELECT * FROM customers WHERE cpf = $1 AND id <> $2;`, [cpf, id])
 
@@ -59,7 +30,7 @@ export async function customersPut(req, res){
             return res.sendStatus(409)
         }
 
-        const posting = db.query(`UPDATE customers SET name=$1 , phone=$2 , cpf=$3 , birthday=$4 WHERE id = $5;`, [name, phone, cpf, birthday, id])
+        await db.query(`UPDATE customers SET name=$1 , phone=$2 , cpf=$3 , birthday=$4 WHERE id = $5;`, [name, phone, cpf, birthday, id])
 
 
         res.sendStatus(200)
