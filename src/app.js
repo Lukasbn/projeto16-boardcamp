@@ -228,5 +228,38 @@ app.delete('/rentals/:id', async (req, res) => {
     }
 })
 
+app.get('/rentals', async (req,res)=>{
+    try {
+        const rentals = await db.query(`SELECT rentals.*, customers.name AS customer_name, games.name AS game_name FROM
+            rentals JOIN customers ON customers.id = "customerId"
+            JOIN games ON games.id = "gameId";`
+        )
+
+        const list = rentals.rows.map((data)=>(
+            {
+                id: data.id,
+                customerId: data.customerId,
+                gameId: data.gameId,
+                rentals: data.rentDate,
+                daysRented: data.daysRented,
+                returnDate: data.returnDate,
+                originalPrice: data.originalPrice,
+                delayFee: data.delayFee,
+                customer:{
+                    id: data.customerId,
+                    name: data.customer_name
+                },
+                game:{
+                    id: data.gameId,
+                    name: data.game_name
+                }
+            }
+        ))
+        res.send(list)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+})
+
 const port = process.env.PORT || 5000
 app.listen(port, () => console.log(`app running on port ${port}`))
