@@ -59,9 +59,9 @@ app.post('/customers', async (req,res)=>{
     
     const customerSchema = joi.object({
         name: joi.string().required(),
-        phone: joi.string().required(),
-        cpf: joi.string().required(),
-        birthday: joi.number().integer().greater(0).required()
+        phone: joi.string().min(10).max(11).required(),
+        cpf: joi.string().length(11).required(),
+        birthday: joi.date().required()
     })
 
     const validation = customerSchema.validate(req.body, { abortEarly: false });
@@ -69,6 +69,20 @@ app.post('/customers', async (req,res)=>{
     if (validation.error) {
         const errors = validation.error.details.map((detail) => detail.message);
         return res.status(400).send(errors);
+    }
+
+    try {  
+        const verification = await db.query(`SELECT * FROM customers WHERE cpf = $1;`, [cpf])
+
+        if (verification.rows[0]) {
+            return res.sendStatus(409)
+        }
+
+        const posting = db.query(`INSERT INTO customers (name,phone,cpf,birthday) VALUES ($1,$2,$3,$4)`,[name,phone,cpf,birthday])
+        
+        res.sendStatus(201)
+    } catch (err) {
+        res.status(500).send(err.message)
     }
 })
 
