@@ -180,5 +180,33 @@ app.post('/rentals', async (req, res) => {
     }
 })
 
+app.post('/rentals/:id/return', async (req,res)=>{
+    const {id} = req.params
+    const date = dayjs(Date.now()).format('YYYY-MM-DD')
+    try {
+        const rent = await db.query(`SELECT * FROM rentals WHERE id=$1`,[id])
+        if(!rent.rows[0]){
+            return res.sendStatus(404)
+        }
+        if(rent.rows[0].returnDate){
+            return res.sendStatus(400)
+        }
+        const game = await db.query(`SELECT * FROM games WHERE id=$1`,[rent.rows[0].gameId])
+
+        if(dayjs(date).diff(rent.rows[0].rentDate, 'day') >= rent.rows[0].daysRented){
+            const delay = (dayjs(date).diff(rent.rows[0].rentDate, 'day') - rent.rows[0].daysRented)
+            const value = delay*game.rows[0].pricePerDay
+            await db.query(`UPDATE rentals SET "returnDate"=$1, "delayFee"=$2 WHERE id=$3`,[date,value,id])
+            return res.sendStatus(200)
+        }
+
+        await db.query(`UPDATE rentals SET "returnDate"=$1, "delayFee"=0 WHERE id=$2`,[date,id])
+
+        res.sendStatus(200)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+})
+
 const port = process.env.PORT || 5000
 app.listen(port, () => console.log(`app running on port ${port}`))
